@@ -39,6 +39,17 @@ export const authAPI = {
   register: (userData) => api.post('/register', userData),
   logout: () => api.post('/logout'),
   me: () => api.get('/me'),
+  verifyEmail: (id, hash) => {
+    return api.get(`/email/verify/${id}/${hash}`);
+  },
+  
+  forgotPassword: (data) => {
+    return api.post('/forgot-password', data);
+  },
+  
+  resetPassword: (data) => {
+    return api.post('/reset-password', data);
+  }
 };
 
 export const testValue = 42;

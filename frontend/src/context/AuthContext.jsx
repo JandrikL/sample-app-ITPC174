@@ -22,14 +22,15 @@ export const AuthProvider = ({ children }) => {
   const checkAuthStatus = async () => {
     try {
       const response = await authAPI.me();
-      // Example: backend returns { user: null } if not logged in
+      console.log('Auth response:', response.data); // ← Add this for debugging
       if (response.data && response.data.user) {
         setUser(response.data.user);
       } else {
         setUser(null);
       }
     } catch (error) {
-      setUser(null); // on 401 or other errors
+      console.log('Auth check error:', error); // ← Add this for debugging
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -37,10 +38,14 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
-      await authAPI.getCsrfToken(); // <-- fetch CSRF token first
+      await authAPI.getCsrfToken();
       const response = await authAPI.login(credentials);
       setUser(response.data.user);
-      return { success: true };
+      return { 
+        success: true,
+        user: response.data.user,
+        message: 'Login successful'
+      };
     } catch (error) {
       return { 
         success: false, 
@@ -51,11 +56,22 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      await authAPI.getCsrfToken(); // <-- fetch CSRF token first
+      await authAPI.getCsrfToken();
       const response = await authAPI.register(userData);
-      setUser(response.data.user);
-      return { success: true };
+      
+      console.log('API Response:', response);
+      console.log('Response Data:', response.data);
+      
+      // Make sure to return the actual data from the response
+      return { 
+        success: true, 
+        message: response.data?.message || 'Registration successful!',
+        user: response.data?.user || null
+      };
     } catch (error) {
+      console.log('Registration Error:', error);
+      console.log('Error response:', error.response?.data);
+      
       return { 
         success: false, 
         error: error.response?.data?.message || 'Registration failed',

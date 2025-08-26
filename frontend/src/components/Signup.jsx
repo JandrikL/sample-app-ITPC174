@@ -23,7 +23,17 @@ const Signup = () => {
     const result = await register(formData);
     
     if (result.success) {
-      navigate('/dashboard');
+      // Don't redirect to dashboard
+      setErrors({ 
+        general: 'Registration successful! Please check your email to verify your account.' 
+      });
+      // Clear the form
+      setFormData({
+        name: '',
+        email: '',
+        password: '',
+        password_confirmation: ''
+      });
     } else {
       setErrors(result.errors || { general: result.error });
     }
