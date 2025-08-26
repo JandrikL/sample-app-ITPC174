@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://localhost:8000'; // <-- no /api
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -26,12 +26,19 @@ api.interceptors.response.use(
   }
 );
 
+const getCsrfToken = async () => {
+  const res = await api.get('/csrf-token');
+  api.defaults.headers.common['X-CSRF-TOKEN'] = res.data.token; // <-- critical
+  return res;
+};
+
+
 export const authAPI = {
+  getCsrfToken,
   login: (credentials) => api.post('/login', credentials),
   register: (userData) => api.post('/register', userData),
   logout: () => api.post('/logout'),
   me: () => api.get('/me'),
-  checkAuth: () => api.get('/check-auth'),
 };
 
 export const testValue = 42;

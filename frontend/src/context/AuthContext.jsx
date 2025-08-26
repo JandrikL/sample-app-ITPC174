@@ -1,9 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI } from '../services/api';
-// import * as apiModule from '../services/api';
 
-// console.log("here")
-// console.log(apiModule);
 const AuthContext = createContext();
 
 export const useAuth = () => {
@@ -19,19 +16,20 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is authenticated on app load
     checkAuthStatus();
   }, []);
 
   const checkAuthStatus = async () => {
     try {
-      const response = await authAPI.checkAuth();
-      if (response.data.authenticated) {
+      const response = await authAPI.me();
+      // Example: backend returns { user: null } if not logged in
+      if (response.data && response.data.user) {
         setUser(response.data.user);
+      } else {
+        setUser(null);
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
-      setUser(null);
+      setUser(null); // on 401 or other errors
     } finally {
       setLoading(false);
     }
@@ -39,11 +37,9 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
+      await authAPI.getCsrfToken(); // <-- fetch CSRF token first
       const response = await authAPI.login(credentials);
-      const { user } = response.data;
-      
-      setUser(user);
-      
+      setUser(response.data.user);
       return { success: true };
     } catch (error) {
       return { 
@@ -53,8 +49,24 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const register = async (userData) => {
+    try {
+      await authAPI.getCsrfToken(); // <-- fetch CSRF token first
+      const response = await authAPI.register(userData);
+      setUser(response.data.user);
+      return { success: true };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error.response?.data?.message || 'Registration failed',
+        errors: error.response?.data?.errors || {}
+      };
+    }
+  };
+
   const logout = async () => {
     try {
+      await authAPI.getCsrfToken(); // <-- fetch CSRF token first
       await authAPI.logout();
     } catch (error) {
       console.error('Logout error:', error);
@@ -66,6 +78,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     login,
+    register,
     logout,
     loading
   };
