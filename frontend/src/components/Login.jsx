@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { authAPI } from '../services/api'; // ← Added this import
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -22,7 +23,7 @@ const Login = () => {
     setLoading(true);
 
     const result = await login(formData);
-    console.log('Registration result:', result);
+    console.log('Login result:', result); // ← Changed from Registration to Login
     if (result.success) {
       if (!result.user.email_verified_at) {
         setNeedsEmailVerification(true);

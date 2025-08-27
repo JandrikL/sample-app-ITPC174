@@ -1,14 +1,26 @@
 import axios from 'axios';
+import Cookies from 'js-cookie';
 
-const API_BASE_URL = 'http://localhost:8000'; // <-- no /api
+const API_BASE_URL = 'http://localhost:8000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true, // Important for session-based auth
+  withCredentials: true,
+  xsrfCookieName: 'XSRF-TOKEN',  
+  xsrfHeaderName: 'X-XSRF-TOKEN',
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
+});
+
+// Automatically attach CSRF token to every request
+api.interceptors.request.use((config) => {
+  const csrfToken = Cookies.get('XSRF-TOKEN');
+  if (csrfToken) {
+    config.headers['X-XSRF-TOKEN'] = decodeURIComponent(csrfToken);
+  }
+  return config;
 });
 
 // Handle authentication errors
@@ -16,7 +28,6 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Clear any stored user data and redirect to login
       localStorage.removeItem('user');
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
@@ -27,32 +38,18 @@ api.interceptors.response.use(
 );
 
 const getCsrfToken = async () => {
-  const res = await api.get('/csrf-token');
-  api.defaults.headers.common['X-CSRF-TOKEN'] = res.data.token; // <-- critical
-  return res;
+  return api.get('/sanctum/csrf-cookie');
 };
-
 
 export const authAPI = {
   getCsrfToken,
-  login: (credentials) => api.post('/login', credentials),
-  register: (userData) => api.post('/register', userData),
-  logout: () => api.post('/logout'),
-  me: () => api.get('/me'),
-  verifyEmail: (id, hash) => {
-    return api.get(`/email/verify/${id}/${hash}`);
-  },
-  
-  forgotPassword: (data) => {
-    return api.post('/forgot-password', data);
-  },
-  
-  resetPassword: (data) => {
-    return api.post('/reset-password', data);
-  }
+  login: (credentials) => api.post('/api/login', credentials),
+  register: (userData) => api.post('/api/register', userData),
+  logout: () => api.post('/api/logout'),
+  me: () => api.get('/api/me'),
+  verifyEmail: (id, hash) => api.get(`/api/email/verify/${id}/${hash}`),
+  forgotPassword: (data) => api.post('/api/forgot-password', data),
+  resetPassword: (data) => api.post('/api/reset-password', data),
 };
-
-export const testValue = 42;
-console.log('api.js loaded');
 
 export default api;

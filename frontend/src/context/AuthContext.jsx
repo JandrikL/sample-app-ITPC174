@@ -22,15 +22,12 @@ export const AuthProvider = ({ children }) => {
   const checkAuthStatus = async () => {
     try {
       const response = await authAPI.me();
-      console.log('Auth response:', response.data); // ← Add this for debugging
-      if (response.data && response.data.user) {
-        setUser(response.data.user);
-      } else {
-        setUser(null);
-      }
+      setUser(response.data.user || response.data); // Handle both response formats
+      return response.data.user || response.data;
     } catch (error) {
-      console.log('Auth check error:', error); // ← Add this for debugging
+      console.log('Not authenticated');
       setUser(null);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -38,15 +35,22 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
+      // Get CSRF cookie first
       await authAPI.getCsrfToken();
+      
+      // Make login request
       const response = await authAPI.login(credentials);
-      setUser(response.data.user);
+      
+      // Get user data after successful login
+      const userData = await checkAuthStatus();
+      
       return { 
         success: true,
-        user: response.data.user,
-        message: 'Login successful'
+        user: userData,
+        message: 'Login successful',
       };
     } catch (error) {
+      console.error('Login error details:', error.response);
       return { 
         success: false, 
         error: error.response?.data?.message || 'Login failed' 
@@ -58,20 +62,16 @@ export const AuthProvider = ({ children }) => {
     try {
       await authAPI.getCsrfToken();
       const response = await authAPI.register(userData);
-      
-      console.log('API Response:', response);
-      console.log('Response Data:', response.data);
-      
-      // Make sure to return the actual data from the response
+
+      // Get user data after successful registration
+      const registeredUser = await checkAuthStatus();
+
       return { 
         success: true, 
-        message: response.data?.message || 'Registration successful!',
-        user: response.data?.user || null
+        user: registeredUser,
+        message: 'Registration successful!'
       };
     } catch (error) {
-      console.log('Registration Error:', error);
-      console.log('Error response:', error.response?.data);
-      
       return { 
         success: false, 
         error: error.response?.data?.message || 'Registration failed',
@@ -82,7 +82,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await authAPI.getCsrfToken(); // <-- fetch CSRF token first
+      await authAPI.getCsrfToken();
       await authAPI.logout();
     } catch (error) {
       console.error('Logout error:', error);
@@ -96,12 +96,13 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
-    loading
+    loading,
+    checkAuthStatus
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 };
